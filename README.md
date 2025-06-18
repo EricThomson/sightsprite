@@ -1,24 +1,30 @@
 # sightsprite 
-<img src="https://raw.githubusercontent.com/EricThomson/sightsprite/main/src/sightsprite/assets/sightsprite_logo.jpg" alt="sightsprite logo" align="right" width="200">
+<img src="https://raw.githubusercontent.com/EricThomson/sightsprite/main/src/sightsprite/assets/sightsprite_logo.jpg" alt="sightsprite logo" align="right" width="250">
 Real-time machine vision with voice alerts.<br/><br/> 
 
-Doing fun things with machine vision. Includes utilities for all stages of pipeline development, from data collection to realtime inference.
+Fun with machine vision. Utilities for all stages of pipeline development for machine vision with voice alerts: from data collection to real-time inference.
 
-Under rapid and active development. Will include:
+Under rapid and active development, breaking changes are guaranteed through summer of 2025. Am currently building:
 - OpenCV utilities for capturing training data. 
-- Tools for training pytorch models
-- Utilities for realtime inference with verbal nudges
+- Simple tools (in matplotlib) for labeling and organizing captured data.
+- Tools for training pytorch models.
+- Utilities for realtime inference with voice alerts (e.g., "get off the couch").
 
-This is in pre-alpha stage, all of it (including the readme).
+Everything is changing very fast. Will update when things are less unstable. 
 
 ## To do
+Once following steps working I'll consider sightsprite to be in alpha stage:
 1. Get `capture.py` in slightly better shape
    - Add ability to change width/height instead of default width x height 
    - fix up the weird Qt warnings in linux
    - capture more data 
    - Make some simple tests 
-2. Create pyproject.toml, etc and pypi it (opencv-python is currently only dependency)
+2. Create pyproject.toml, etc and get to pypi.
 3. Train on sleep data (use deepglue), build out `training.py` module. 
    - Lift and shift ImageLabeler and image copier to training.py from sandbox.
    - Train network using deepglue tools within sandbox.  
-4. Once you have model trained, build out out `inference.py` module
+4. Once you have model trained, build out out `inference.py` 
+   -  Real-time inference
+   -  Voice alerts to nudge you.
+5. Build some docs to explain how it all works. 
+   

@@ -1,7 +1,10 @@
 # sightsprite 
-Real-time machine vision with voice alerts. :sparkles: 
+<img src="https://raw.githubusercontent.com/EricThomson/sightsprite/main/src/sightsprite/assets/sightsprite_logo.jpg" alt="sightsprite logo" align="right" width="200">
+Real-time machine vision with voice alerts.<br/><br/> 
 
-Fun with machine vision. Under active development. Plans to include:
+Doing fun things with machine vision. Includes utilities for all stages of pipeline development, from data collection to realtime inference.
+
+Under rapid and active development. Will include:
 - OpenCV utilities for capturing training data. 
 - Tools for training pytorch models
 - Utilities for realtime inference with verbal nudges

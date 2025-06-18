@@ -1,18 +1,21 @@
 # sightsprite 
 Real-time machine vision with voice alerts. :sparkles: 
 
-Fun with machine vision. Will contain:
+Fun with machine vision. Under active development. Plans to include:
 - OpenCV utilities for capturing training data. 
-- Tools for training pytorch models (will use deepglue)
+- Tools for training pytorch models
 - Utilities for realtime inference with verbal nudges
 
-This is in pre-alpha stage, all of it (including the readme). I'm currently finishing up the basic capture utilities in `capture.py` so I can get training data. 
+This is in pre-alpha stage, all of it (including the readme).
 
 ## To do
 1. Get `capture.py` in slightly better shape
-   - add logging instead of print
-   - fix up the weird Qt warnings
+   - Add ability to change width/height instead of default width x height 
+   - fix up the weird Qt warnings in linux
    - capture more data 
    - Make some simple tests 
-2. Train on sleep data (use deepglue), build out `training.py` module
-3. Once you have model trained, build out out `inference.py` module
+2. Create pyproject.toml, etc and pypi it (opencv-python is currently only dependency)
+3. Train on sleep data (use deepglue), build out `training.py` module. 
+   - Lift and shift ImageLabeler and image copier to training.py from sandbox.
+   - Train network using deepglue tools within sandbox.  
+4. Once you have model trained, build out out `inference.py` module

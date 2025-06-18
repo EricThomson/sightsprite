@@ -8,16 +8,19 @@ import os
 from pathlib import Path
 import time
 
-ASSETS_DIR = "../../assets/"
+import logging
+logging.getLogger(__name__)
+
+ASSETS_DIR = Path(__file__).parent / "assets"
 
 def show_test_image():
-    print("Showing built-in image...click anywhere in image to close")
-    image_path = ASSETS_DIR + "test_image.png"
+    logging.info("Showing built-in image...click anywhere in image to close")
+    image_path = ASSETS_DIR / "test_image.png"
     if not os.path.isfile(image_path):
         raise FileNotFoundError(f"Resource not found: {image_path}")
     img = cv2.imread(image_path)
     if img is None:
-        print("Failed to load image")
+        logging.warning("Failed to load image")
         return None
     else:
         cv2.imshow("Sample Image", img)
@@ -33,8 +36,8 @@ def show_test_video(fps=30):
     Will show in continuous loop until user closes window by pressing a key while window is 
     highlighted.
     """
-    print("Showing test video... click any key to close the video window")
-    video_path = ASSETS_DIR + "test_video.mp4"  
+    logging.info("Showing test video... click any key to close the video window")
+    video_path = ASSETS_DIR / "test_video.mp4"  
     fps = min(fps, 30) # cap fps at 30 for now
 
     if not os.path.isfile(video_path):
@@ -42,7 +45,7 @@ def show_test_video(fps=30):
     
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        print("Failed to open video")
+        logging.warning("Failed to open video")
         return None
     
     delay = int(1000 / fps)  # delay b/w frames in ms
@@ -61,7 +64,6 @@ def show_test_video(fps=30):
         # Wait for key press or window close event until 'x' is pressed
         key = cv2.waitKey(delay) & 0xFF
         if key != 255:  # If any key is pressed (except no key)
-            print("Closing video window (key pressed)")
             break
 
     cap.release()  # Release the video capture object
@@ -69,15 +71,15 @@ def show_test_video(fps=30):
 
 
 def capture_video(filepath, fps=30, duration=5):
-    print(f"Capturing {duration} seconds of video at up to {fps} FPS...")
+    logging.info(f"Capturing {duration} seconds of video at up to {fps} FPS...")
     filepath = Path(filepath)
     video_path = filepath / "captured_test.avi"
 
     # Open webcam
-    print("Setting up webcam and video writer... this may take a moment.")
+    logging.info("Setting up webcam and video writer... this may take a moment.")
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        print("Error: Could not open webcam.")
+        logging.warning("Error: Could not open webcam.")
         return
 
     # Get intrinsic webcam FPS (may return 0.0 if unknown)
@@ -85,12 +87,12 @@ def capture_video(filepath, fps=30, duration=5):
     if webcam_fps == 0.0:
         webcam_fps = 30.0  # fallback default
     actual_fps = min(fps, webcam_fps)
-    print(f"Using {actual_fps:.2f} FPS (webcam supports {webcam_fps:.2f})")
+    logging.info(f"Using {actual_fps:.2f} FPS (webcam supports {webcam_fps:.2f})")
 
     # Frame size
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    print(f"Video resolution: {width}x{height}")
+    logging.info(f"Video resolution: {width}x{height}")
 
     # VideoWriter setup
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -98,14 +100,13 @@ def capture_video(filepath, fps=30, duration=5):
 
     # Number of frames to capture
     total_frames = int(actual_fps * duration)
-    print(f"Capturing {total_frames} frames...")
+    logging.info(f"Capturing {total_frames} frames...")
 
-    print("Setup complete -- starting capture now!")
+    logging.info("Setup complete -- starting capture now!")
     frame_count = 0
     while frame_count < total_frames:
         ret, frame = cap.read()
         if not ret:
-            print("Error: Failed to read frame.")
             break
 
         out.write(frame)
@@ -119,7 +120,7 @@ def capture_video(filepath, fps=30, duration=5):
     cap.release()
     out.release()
     cv2.destroyAllWindows()
-    print(f"Video saved to {video_path}")
+    logging.info(f"Video saved to {video_path}")
 
 
 def get_snapshot(image_path, show=True):
@@ -142,12 +143,12 @@ def get_snapshot(image_path, show=True):
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        print("Error: Could not open webcam.")
+        logging.warning("Error: Could not open webcam.")
         return None
 
     ret, frame = cap.read()
     if not ret:
-        print("Error: Could not capture image.")
+        logging.warning("Error: Could not capture image.")
         cap.release()
         return None
 
@@ -192,11 +193,11 @@ def get_snapshots(directory, filename_stem="image",
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        print("Error: Could not open webcam.")
+        logging.warning("Error: Could not open webcam.")
         return
 
-    print(f"Saving snapshots to {directory}")
-    print(f"Saving every {save_interval:.1f}s for {duration:.1f}s")
+    logging.info(f"Saving snapshots to {directory}")
+    logging.info(f"Saving every {save_interval:.1f}s for {duration:.1f}s")
 
     start_time = time.time()
     next_snapshot_time = start_time
@@ -211,7 +212,6 @@ def get_snapshots(directory, filename_stem="image",
 
             ret, frame = cap.read()
             if not ret:
-                print("Warning: Failed to read frame.")
                 continue
 
             save_this_frame = False
@@ -220,7 +220,7 @@ def get_snapshots(directory, filename_stem="image",
                 filename = f"{filename_stem}_{timestamp}.png"
                 path = directory / filename
                 cv2.imwrite(str(path), frame)
-                print(f"\t[{snapshot_count}] Saved: {path.name}")
+                logging.info(f"\t[{snapshot_count}] Saved: {path.name}")
                 snapshot_count += 1
                 next_snapshot_time = current_time + save_interval
                 save_this_frame = True  # use to draw red circle on frames that are being captured
@@ -233,19 +233,19 @@ def get_snapshots(directory, filename_stem="image",
 
                 key = cv2.waitKey(display_refresh_delay) & 0xFF
                 if key != 255:
-                    print("Key press detected — exiting early.")
+                    logging.info("Key press detected — exiting early.")
                     break
             else:
                 # Even if not showing, sleep to avoid tight loop
                 cv2.waitKey(display_refresh_delay)
 
     except KeyboardInterrupt:
-        print("Interrupted by user.")
+        logging.warning("Interrupted by user.")
 
     finally:
         cap.release()
         cv2.destroyAllWindows()
-        print("Done. Released camera.")
+        logging.info("Done. Released camera.")
 
 
 if __name__ == "__main__":
@@ -253,13 +253,16 @@ if __name__ == "__main__":
     app_home = Path.home() / ".sightsprite"
     app_home.mkdir(exist_ok = True)
 
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
+                        level=logging.INFO)
+ 
     print("__TESTING CAPTURE SANDBOX__")
     print("Current working directory:", os.getcwd())
     print(f"App home: {app_home}")
     print("OpenCV version:", cv2.__version__)
 
-    # intended options: image_show, video_show, video_capture, image_capture, video_capture, capture_snapshots
-    test_option = "capture_snapshots"
+    # intended options: image_show, video_show, video_capture, image_capture, capture_snapshots
+    test_option = "video_show"
 
     if test_option == "image_show":
         try:
@@ -278,7 +281,7 @@ if __name__ == "__main__":
     elif test_option == "capture_snapshots":
         test_shots = app_home / "nightwatch"
         print(f"Attempting to get snapshots to {test_shots}")
-        get_snapshots(test_shots, save_interval=5, duration=60, 
-                      filename_stem="night2", show=True)
+        get_snapshots(test_shots, save_interval=10, duration=30, 
+                      filename_stem="image", show=True)
     elif test_option == "video_capture":
         capture_video(app_home, fps=10, duration=3)

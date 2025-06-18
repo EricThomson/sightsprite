@@ -4,7 +4,6 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sightsprite"
-version = "0.1.0"
 description = "Machine vision with voice alerts"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -21,6 +20,8 @@ dependencies = [
     "matplotlib",
 ]
 
+dynamic = ["version"]
+
 [project.urls]
 Homepage = "https://github.com/EricThomson/sightsprite"
 
@@ -31,3 +32,5 @@ include = [
     "src/sightsprite/assets",
 ]
 
+[tool.hatch.version]
+path = "src/sightsprite/__init__.py"

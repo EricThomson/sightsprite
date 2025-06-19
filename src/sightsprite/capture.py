@@ -256,7 +256,7 @@ if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                         level=logging.INFO)
  
-    print("__TESTING CAPTURE SANDBOX__")
+    print("__TESTING SIGHTSPRITE CAPTURE__")
     print("Current working directory:", os.getcwd())
     print(f"App home: {app_home}")
     print("OpenCV version:", cv2.__version__)

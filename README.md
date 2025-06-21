@@ -1,5 +1,5 @@
 # sightsprite 
-<img src="https://raw.githubusercontent.com/EricThomson/sightsprite/main/src/sightsprite/assets/sightsprite_logo.jpg" alt="sightsprite logo" align="right" width="250">
+<img src="https://raw.githubusercontent.com/EricThomson/sightsprite/main/src/sightsprite/data/sightsprite_logo.jpg" alt="sightsprite logo" align="right" width="250">
 Real-time machine vision with voice alerts.<br/><br/> 
 
 Fun with machine vision. Utilities for all stages of pipeline development for machine vision with voice alerts: from data collection to real-time inference.

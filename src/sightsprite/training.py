@@ -1,5 +1,5 @@
 """
-sightsprite utilities for training data once it is acquired.  
+sightsprite utilities for training once data is acquired using capture module.  
 Has utilities for labeling data, sorting it into folders, and training models. 
 """
 import logging
@@ -391,27 +391,28 @@ if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
     logging.info("__TESTING SIGHTSPRITE TRAINING__")
 
-    data_dir = Path(r'C:/Users/Eric/development/data/')
-    output_dir = data_dir / "pets_random"
-    pets_dir = data_dir / "pets"
+    data_dir = Path(__file__).parent / "data"
+    pets_data = data_dir / "pets" # to-be-labeled images, packaged with sightsprite
+    app_home = Path.home() / ".sightsprite"
+    labels_file = app_home / "pet_labels.csv"
+    pets_categorized = app_home / "pets_sorted" # categorized images in cat/ dog/ folders 
 
-    # test_class, sort_images
-    test_option = "test_class" 
+    # Options: test_label, test_review, sort_images
+    test_option = "sort_images" 
 
-    if test_option == "test_class":
-        app_home = Path.home() / ".sightsprite"
-        save_dir = app_home / "labels.csv"
+    if test_option == "test_label":
+        # ImageLabeler(data_dir, categories, output_csv_path) 
         categories = ["dog", "cat"]
-        labeler = ImageLabeler(output_dir, categories, output_csv=save_dir)
+        labeler = ImageLabeler(pets_data, categories, output_csv=labels_file)
         labeler.run()
-        # labeler.review_labels()
+    elif test_option == "test_review":
+        # review previously labeled images
+        categories = ["dog", "cat"]
+        labeler = ImageLabeler(pets_data, categories, output_csv=labels_file)
+        labeler.review_labels()
 
     elif test_option == "sort_images":
-        app_home = Path.home() / ".sightsprite"
-        labels_file = app_home / "labels.csv"
-        source_dir = output_dir
-        output_dir = data_dir / "sorted_pets"
-        sort_images_by_label(labels_file, source_dir, output_dir)
+        sort_images_by_label(labels_file, pets_data, pets_categorized)
 
-        logging.info(f"Sorting done. Check {output_dir} for results.")
+        logging.info(f"Sorting done. Check {pets_categorized} for results.")
 

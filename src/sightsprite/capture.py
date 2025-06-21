@@ -4,6 +4,7 @@ mainly, capturing training data, but also some for displaying data
 """
 import cv2
 from datetime import datetime
+from importlib.resources import files, as_file
 import os
 from pathlib import Path
 import time
@@ -11,14 +12,14 @@ import time
 import logging
 logging.getLogger(__name__)
 
-ASSETS_DIR = Path(__file__).parent / "assets"
+data_dir = Path(__file__).parent / "data"
 
 def show_test_image():
     logging.info("Showing built-in image...click anywhere in image to close")
-    image_path = ASSETS_DIR / "test_image.png"
+    image_path = data_dir / "test_image.png"
     if not os.path.isfile(image_path):
         raise FileNotFoundError(f"Resource not found: {image_path}")
-    img = cv2.imread(image_path)
+    img = cv2.imread(str(image_path))
     if img is None:
         logging.warning("Failed to load image")
         return None
@@ -37,13 +38,13 @@ def show_test_video(fps=30):
     highlighted.
     """
     logging.info("Showing test video... click any key to close the video window")
-    video_path = ASSETS_DIR / "test_video.mp4"  
+    video_path = data_dir / "test_video.mp4"  
     fps = min(fps, 30) # cap fps at 30 for now
 
     if not os.path.isfile(video_path):
         raise FileNotFoundError(f"Resource not found: {video_path}")
     
-    cap = cv2.VideoCapture(video_path)
+    cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
         logging.warning("Failed to open video")
         return None

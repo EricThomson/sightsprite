@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "sightsprite"
 description = "Machine vision with voice alerts"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 license = {text = "Apache-2.0"}
 authors = [{ name = "Eric Thomson", email = "thomson.eric@gmail.com" }]
 
@@ -27,10 +27,9 @@ Homepage = "https://github.com/EricThomson/sightsprite"
 
 [tool.hatch.build]
 packages = ["src/sightsprite"]
-include = [
-    "src/sightsprite",
-    "src/sightsprite/assets",
-]
+
+[tool.hatch.build.targets.wheel]
+include = ["sightsprite/data/**/*"]
 
 [tool.hatch.version]
 path = "src/sightsprite/__init__.py"

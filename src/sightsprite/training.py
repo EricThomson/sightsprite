@@ -396,19 +396,18 @@ if __name__ == "__main__":
     app_home = Path.home() / ".sightsprite"
     labels_file = app_home / "pet_labels.csv"
     pets_categorized = app_home / "pets_sorted" # categorized images in cat/ dog/ folders 
+    pet_categories = ["dog", "cat"] 
 
     # Options: test_label, test_review, sort_images
     test_option = "sort_images" 
 
     if test_option == "test_label":
         # ImageLabeler(data_dir, categories, output_csv_path) 
-        categories = ["dog", "cat"]
-        labeler = ImageLabeler(pets_data, categories, output_csv=labels_file)
+        labeler = ImageLabeler(pets_data, pet_categories, output_csv=labels_file)
         labeler.run()
     elif test_option == "test_review":
         # review previously labeled images
-        categories = ["dog", "cat"]
-        labeler = ImageLabeler(pets_data, categories, output_csv=labels_file)
+        labeler = ImageLabeler(pets_data, pet_categories, output_csv=labels_file)
         labeler.review_labels()
 
     elif test_option == "sort_images":

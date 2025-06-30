@@ -1,7 +1,7 @@
 """
 sight sprite: machine vision with voice alerts 
 """
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .capture import get_snapshot
 from .capture import get_snapshots

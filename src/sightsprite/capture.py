@@ -270,19 +270,24 @@ if __name__ == "__main__":
             show_test_image()
         except FileNotFoundError as e:
             print("\tDidn't find the file. Error:\n\t", e)
+            
     elif test_option == "video_show":
         try:
             show_test_video()
         except FileNotFoundError as e:
             print("\tDidn't find the file. Error:\n\t", e)
+
     elif test_option == "image_capture":
         im_path = app_home / "captured_test.png"
         print(f"Attempting to capture to {im_path}")
+
         get_snapshot(im_path)
+
     elif test_option == "capture_snapshots":
         test_shots = app_home / "nightwatch"
         print(f"Attempting to get snapshots to {test_shots}")
         get_snapshots(test_shots, save_interval=10, duration=30, 
                       filename_stem="image", show=True)
+        
     elif test_option == "video_capture":
         capture_video(app_home, fps=10, duration=3)

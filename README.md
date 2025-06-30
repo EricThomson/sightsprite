@@ -17,14 +17,16 @@ Once following steps working I'll consider sightsprite to be in alpha stage:
 1. Get `capture.py` in slightly better shape
    - Add ability to change width/height instead of default width x height 
    - fix up the weird Qt warnings in linux
-   - capture more data 
    - Make some simple tests 
-2. Create pyproject.toml, etc and get to pypi.
-3. Train on sleep data (use deepglue), build out `training.py` module. 
-   - Lift and shift ImageLabeler and image copier to training.py from sandbox.
+2. Train on sleep data (use deepglue), build out `training.py` module. 
+   - Label sleep data using ImageLabeler
    - Train network using deepglue tools within sandbox.  
 4. Once you have model trained, build out out `inference.py` 
    -  Real-time inference
    -  Voice alerts to nudge you.
 5. Build some docs to explain how it all works. 
+
+
+### Notes etc
+Any images skipped during labeling will appear first when you restart the `ImageLabeler`
    

@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import pandas as pd
 from PIL import Image
+from PIL import ImageEnhance
 import shutil
 
 logging.getLogger(__name__)
@@ -48,6 +49,7 @@ class ImageLabeler:
         through existing labels, allowing the user to relabel or delete
         labels saved in the CSV file.
     """
+
     def __init__(self, image_dir, categories, output_csv="labels.csv"):
         if len(categories) > 5:
             raise ValueError("This minimal tool only supports up to 5 categories.")
@@ -57,11 +59,12 @@ class ImageLabeler:
         self.output_csv.parent.mkdir(parents=True, exist_ok=True)
         
         self.categories = categories
+        self.brightness = 1.0 
         # map categories to keyboard numbers for labeling 
         self.category_keys = {str(i + 1) for i in range(len(self.categories))}
         self.image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff'}
 
-        self.image_paths = self._load_image_paths() #  all images in image_dir
+        self.image_paths = self._load_image_paths() # all images in image_dir
         # list of (filename, label) tuples to save (saves every 10, or on quit)
         self.labels = [] 
         self.current_index = 0
@@ -78,7 +81,7 @@ class ImageLabeler:
         Displays images for labeling, monitors keyboard inputs.
         """
         if not self.image_paths:
-            print("No valid images found or all images labeled.")
+            logging.warning("No valid images found or all images labeled.")
             return
 
         self.fig, self.ax = plt.subplots(figsize=(5, 5))
@@ -114,10 +117,12 @@ class ImageLabeler:
             return set()
         try:
             df = pd.read_csv(self.output_csv)
-            print(f"Resuming: Found {len(df)} labeled images.")
-            return set(df["filename"].tolist())
+            labeled_filenames = set(df["filename"].tolist())
+            num_remaining = len(self._get_all_image_paths()) - len(labeled_filenames)
+            logging.info(f"Resuming: Found {len(labeled_filenames)} labeled images. {num_remaining} images left to label.")
+            return labeled_filenames
         except Exception as e:
-            print(f"Failed to read CSV. Starting fresh. Error: {e}")
+            logging.warning(f"Failed to read CSV. Starting fresh. Error: {e}")
             return set()
     
     def _save_labels(self, force=False):
@@ -137,30 +142,52 @@ class ImageLabeler:
                     else:
                         df = new_df
                     df.to_csv(self.output_csv, index=False)
-                    print(f"Saved {len(self.labels)} labels to {self.output_csv}")
+                    logging.info(f"Saved {len(self.labels)} labels to {self.output_csv}")
                     # clear labels after saving -- starting fresh
                     self.labels.clear()
                 except Exception as e:
-                    print(f"Failed to save CSV. Labels kept in memory. Error: {e}")
+                    logging.warning(f"Failed to save CSV. Labels kept in memory. Error: {e}")
 
-    def _update_display(self):
+    def _update_display(self, maintain_zoom=False):
+        # if we maintaining zoom of current axes, save current limits
+        if maintain_zoom:
+            xlim = self.ax.get_xlim()
+            ylim = self.ax.get_ylim()
+
         self.ax.clear()
         try:
             img = Image.open(self.image_paths[self.current_index])
+            img = self._apply_brightness(img)
             self.ax.imshow(img)
 
-            line1 = f"{self.image_paths[self.current_index].name} ({self.current_index + 1}/{len(self.image_paths)})"
+            # line 1 depends on whether current image is labeled
+            filename = self.image_paths[self.current_index].name
+            label = self._get_label_for_image(filename)
+            if label:
+                line1 = f"({filename}) Labeled {label} ({self.current_index + 1}/{len(self.image_paths)})"
+            else:
+                line1 = f"({filename}) UNLABELED ({self.current_index + 1}/{len(self.image_paths)})"
+            # line 2 shows category options
             line2 = " | ".join([f"{i+1} = {cat}" for i, cat in enumerate(self.categories)])
-            line3 = "n = next | q = quit"
+            # line 3 contains instructions
+            line3 = "left/right: next/prev | up/down = brightness | q = quit"
             full_title = f"{line1}\n{line2}\n{line3}"
             self.ax.set_title(full_title, fontsize=self.fontsize)
 
             self.ax.set_xticks([])
             self.ax.set_yticks([])
+
+            if maintain_zoom:
+                # Restore saved zoom limits
+                self.ax.set_xlim(xlim)
+                self.ax.set_ylim(ylim)
+
             self.fig.canvas.draw()
             self.fig.subplots_adjust(top=0.85)
+
+
         except Exception as e:
-            print(f"Failed to load {self.image_paths[self.current_index]}: {e}")
+            logging.warning(f"Failed to load {self.image_paths[self.current_index]}: {e}")
             self.current_index += 1
             if self.current_index < len(self.image_paths):
                 self._update_display()
@@ -168,31 +195,109 @@ class ImageLabeler:
                 self._save_labels(force=True)
                 plt.close(self.fig)
 
+
+    def _apply_brightness(self, img):
+        """
+        Apply brightness adjustment to a PIL Image using the current brightness.
+
+        Parameters
+        ----------
+        img : PIL.Image
+            Original image.
+
+        Returns
+        -------
+        PIL.Image
+            Brightness-adjusted image.
+        """
+        if self.brightness == 1.0:
+            return img
+        enhancer = ImageEnhance.Brightness(img)
+        return enhancer.enhance(self.brightness)
+
+
+    def _get_label_for_image(self, filename):
+        """
+        Return the label for an image if it exists in memory or CSV.
+        Otherwise returns None.
+        """
+        # Check in-memory labels first
+        for fname, lbl in self.labels:
+            if fname == filename:
+                return lbl
+
+        # Check CSV
+        if self.output_csv.exists():
+            try:
+                df = pd.read_csv(self.output_csv)
+                mask = df["filename"] == filename
+                if mask.any():
+                    return df.loc[mask, "label"].values[0]
+            except Exception as e:
+                logging.warning(f"Error checking label for {filename}: {e}")
+
+        return None
+
     def _on_key(self, event):
         if event.key == "q":
-            print("Quitting. Saving labels...")
+            logging.info("Quitting. Saving labels...")
             self._save_labels(force=True)
             plt.close(self.fig)
             return
 
-        if event.key == "n":
-            print(f"Skipped: {self.image_paths[self.current_index].name}")
-            self.current_index += 1
+        maintain_zoom = False # default, only deviate if brightness changed
+        if event.key == "right":
+            self._go_forward_one_image()
+
+        elif event.key == "left":
+            self._go_back_one_image()
 
         elif event.key in self.category_keys:
             self._label_current_image(event.key)
 
+        elif event.key == "up":
+            self.brightness *= 1.1
+            logging.info(f"Brightness increased to {self.brightness:.1f}")
+            maintain_zoom = True
+
+        elif event.key == "down":
+            self.brightness /= 1.1
+            logging.info(f"Brightness decreased to {self.brightness:.1f}")
+            maintain_zoom = True
+        
         else:
-            print(f"Ignored key: {event.key}")
+            logging.info(f"Ignored key: {event.key}")
             return
 
         # Once key event processed: update display or finish if done
         if self.current_index < len(self.image_paths):
-            self._update_display()
+            self._update_display(maintain_zoom=maintain_zoom)
         else:
-            print("Finished labeling all images.")
+            logging.info("Finished labeling all images.")
             self._save_labels(force=True)
             plt.close(self.fig)
+
+    def _go_forward_one_image(self):
+        """
+        Handle indexing changes if user clicks next image in list of images, 
+        if user clicks right arrow. 
+        """
+        if self.current_index < len(self.image_paths) - 1:
+            self.current_index += 1
+            logging.info(f"Moved forward to: {self.image_paths[self.current_index].name}")
+        else:
+            logging.info("Already at the last image.")
+
+    def _go_back_one_image(self):
+        """
+        Handle going back one image. 
+        Only navigates back; does not delete any labels.
+        """
+        if self.current_index > 0:
+            self.current_index -= 1
+            logging.info(f"Moved back to: {self.image_paths[self.current_index].name}")
+        else:
+            logging.info("Already at the first image. Cannot go back further.")
 
     def _label_current_image(self, key):
         """
@@ -200,17 +305,24 @@ class ImageLabeler:
         Key will be a number (as string), e.g. '1' for first category.
         will be number between 1 and len(categories).
         """
-        label_index = int(key) - 1  #- 1 b/c categories are 1-based for user
-        label = self.categories[label_index] # convert to string-based label
-        filename = self.image_paths[self.current_index].name # just filename, not fully path
+        label_index = int(key) - 1
+        label = self.categories[label_index]
+        filename = self.image_paths[self.current_index].name
 
-        # Add label and attempt batch save
+        # Remove previous label for this image if it exists
+        self.labels = [
+            (fname, lbl)
+            for fname, lbl in self.labels
+            if fname != filename
+        ]
+
         self.labels.append((filename, label))
-        print(f"Labeled: {filename} -> {label}")
+        logging.info(f"Labeled: {filename} -> {label}")
         self._save_labels()
 
         self.current_index += 1
 
+    # review_labels() and related methods unchanged from canonical code
     def review_labels(self):
         """
         The second main entry point for the user.
@@ -220,51 +332,64 @@ class ImageLabeler:
         things the same. 
         """
         if not self.output_csv.exists():
-            print(f"No labels found at {self.output_csv}.")
+            logging.warning(f"No labels found at {self.output_csv}.")
             return
 
         try:
             df = pd.read_csv(self.output_csv)
             original_labels = list(zip(df["filename"], df["label"]))
             if not original_labels:
-                print("No labeled images in CSV.")
+                logging.warning("No labeled images in CSV.")
                 return
-            # print how many assigned to each category 
             print("Label distribution:")
             print(df["label"].value_counts().to_string())
         except Exception as e:
-            print(f"Failed to read CSV: {e}")
+            logging.warning(f"Failed to read CSV: {e}")
             return
-        # index of current image being reviewed
         self.review_index = 0
-        # tuple of labels for review 
         self.review_labels = original_labels
         self.review_df = df
         self.fig, self.ax = plt.subplots(figsize=(5, 5))
         self.fig.canvas.manager.set_window_title("Label Review Tool")
-        # same logic as in run() but for review tool 
         self.fig.canvas.mpl_connect("key_press_event", self._on_review_key)
         self._update_review_display()
         plt.show()
 
     def _on_review_key(self, event):
         if event.key == "q":
-            print("Quitting review.")
+            logging.info("Quitting review.")
             plt.close(self.fig)
             return
-        elif event.key == "right":
+
+        maintain_zoom = False  # default
+
+        if event.key == "right":
             self.review_index = min(self.review_index + 1, len(self.review_labels) - 1)
+
         elif event.key == "left":
             self.review_index = max(self.review_index - 1, 0)
+
         elif event.key == "d":
             self._delete_current_label()
+
         elif event.key in self.category_keys:
             self._relabel_current_image(event.key)
+
+        elif event.key == "up":
+            self.brightness *= 1.1
+            logging.info(f"Brightness increased to {self.brightness:.1f}")
+            maintain_zoom = True
+
+        elif event.key == "down":
+            self.brightness /= 1.1
+            logging.info(f"Brightness decreased to {self.brightness:.1f}")
+            maintain_zoom = True
+
         else:
-            print(f"Ignored key: {event.key}")
+            logging.info(f"Ignored key: {event.key}")
             return
 
-        self._update_review_display()
+        self._update_review_display(maintain_zoom=maintain_zoom)
 
     def _relabel_current_image(self, key):
         new_label = self.categories[int(key) - 1]
@@ -272,12 +397,12 @@ class ImageLabeler:
         original_label = self.review_df.at[self.review_index, "label"]
 
         if new_label != original_label:
-            print(f"Relabeling {filename} to {new_label}")
+            logging.info(f"Relabeling {filename} to {new_label}")
             self.review_df.at[self.review_index, "label"] = new_label
             self.review_df.to_csv(self.output_csv, index=False)
             self.review_labels[self.review_index] = (filename, new_label)
         else:
-            print(f"No change: {filename} remains labeled as {original_label}")
+            logging.info(f"No change: {filename} remains labeled as {original_label}")
 
     def _delete_current_label(self):
         """
@@ -285,48 +410,55 @@ class ImageLabeler:
         Closes the viewer if no labels remain.
         """
         filename = self.review_labels[self.review_index][0]
-        print(f"Removing label for {filename}")
+        logging.info(f"Removing label for {filename}")
 
-        # Drop from dataframe and save to csv, and update review_labels
         self.review_df.drop(self.review_index, inplace=True)
         self.review_df.to_csv(self.output_csv, index=False)
         self.review_labels.pop(self.review_index)
 
-        # If nothing left, exit
         if not self.review_labels:
-            print("No more labeled images to review.")
+            logging.info("No more labeled images to review.")
             plt.close(self.fig)
             return
 
-        # If we deleted last item, ensure index stays in bounds
         if self.review_index >= len(self.review_labels):
             self.review_index = len(self.review_labels) - 1
 
-    def _update_review_display(self):
+    def _update_review_display(self, maintain_zoom=False):
+
+        if maintain_zoom:
+            xlim = self.ax.get_xlim()
+            ylim = self.ax.get_ylim()
+
         self.ax.clear()
         try:
             filename, label = self.review_labels[self.review_index]
             img = Image.open(self.image_dir / filename)
+            img = self._apply_brightness(img)
             self.ax.imshow(img)
 
             line1 = f"({filename}) Labeled {label} ({self.review_index + 1}/{len(self.review_labels)})"
             relabel_options = [f"Change to: {i+1} = {cat}" for i, cat in enumerate(self.categories) if cat != label]
             line2 = " | ".join(relabel_options) + " | d = delete"
-            line3 = "left/right = navigate | q = quit"
+            line3 = "left/right: next/prev | up/down = brightness | q = quit"
             full_title = f"{line1}\n{line2}\n{line3}"
             self.ax.set_title(full_title, fontsize=self.fontsize)
 
             self.ax.set_xticks([])
             self.ax.set_yticks([])
+            if maintain_zoom:
+                self.ax.set_xlim(xlim)
+                self.ax.set_ylim(ylim)
+
             self.fig.canvas.draw()
             self.fig.subplots_adjust(top=0.85)
         except Exception as e:
-            print(f"Failed to load {filename}: {e}")
+            logging.warning(f"Failed to load {filename}: {e}")
             self.review_index += 1
             if self.review_index < len(self.review_labels):
                 self._update_review_display()
             else:
-                print("No more labeled images to review.")
+                logging.info("No more labeled images to review.")
                 plt.close(self.fig)
 
 
@@ -399,12 +531,13 @@ if __name__ == "__main__":
     pet_categories = ["dog", "cat"] 
 
     # Options: test_label, test_review, sort_images
-    test_option = "sort_images" 
+    test_option = "test_label" 
 
     if test_option == "test_label":
         # ImageLabeler(data_dir, categories, output_csv_path) 
         labeler = ImageLabeler(pets_data, pet_categories, output_csv=labels_file)
         labeler.run()
+
     elif test_option == "test_review":
         # review previously labeled images
         labeler = ImageLabeler(pets_data, pet_categories, output_csv=labels_file)
